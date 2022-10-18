@@ -57,8 +57,6 @@ jobs:
             - image: circleci/node:13.8.0
         steps:
             - checkout
-            - restore_cache:
-                  keys: [backend-build]
             - run:
                   name: Back-end build
                   command: |
@@ -118,7 +116,6 @@ jobs:
             - run:
                   command: |
                       cd frontend
-                      npm i
                       npm audit fix --audit-level=critical --force
 
     scan-backend:
@@ -141,6 +138,7 @@ jobs:
             - run:
                   name: Install tar utility
                   command: |
+                      yum -y install tar
                       yum install -y tar gzip
             - run:
                   name: Ensure back-end infrastructure exists
@@ -182,7 +180,7 @@ jobs:
         steps:
             - checkout
             - add_ssh_keys:
-                  fingerprints: ["6f:e0:57:f6:9b:91:e2:bc:9a:e5:78:dd:ab:3e:0a:3a:d7:11:61:bf"]
+                  fingerprints: ["8a:cf:43:f9:67:10:97:ad:e1:1c:4f:dc:4d:1b:6a:2d"]
             - attach_workspace:
                   at: /tmp/.circleci/ansible
             - run:
@@ -213,11 +211,12 @@ jobs:
                   command: |
                       cd backend
                       npm install
-                      npm run migrations > migrations_dump.txt
+                      MIGRATIONS_OUTPUT=$(npm run migrations)
             - run:
                   name: Send migration results to Hashiocorps vault
                   command: |
-                      if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
+                      echo ${MIGRATIONS_OUTPUT}
+                      if grep -q "has been executed successfully." ${MIGRATIONS_OUTPUT}
                       then
                         curl --insecure https://kvdb.io/FmqrHhFTmgSRMxCqyRen4/migration -d 'success'
                       else
@@ -265,7 +264,7 @@ jobs:
         steps:
             - checkout
             - add_ssh_keys:
-                  fingerprints: ["6f:e0:57:f6:9b:91:e2:bc:9a:e5:78:dd:ab:3e:0a:3a:d7:11:61:bf"]
+                  fingerprints: ["8a:cf:43:f9:67:10:97:ad:e1:1c:4f:dc:4d:1b:6a:2d"]
             - attach_workspace:
                   at: /tmp/.circleci/ansible
             - run:
