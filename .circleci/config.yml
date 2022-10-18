@@ -4,6 +4,12 @@ orbs:
     slack: circleci/slack@4.10.1
 
 commands:
+    notifiy_on_failure:
+        steps:
+            - slack/notify:
+                event: fail
+                channel: cicd-pipeline
+                template: basic_fail_1
     destroy-environment:
         description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
         steps:
@@ -51,6 +57,7 @@ jobs:
             - save_cache:
                   paths: [frontend/node_modules]
                   key: frontend-build
+            - notifiy_on_failure
 
     build-backend:
         docker:
@@ -66,21 +73,7 @@ jobs:
             - save_cache:
                   paths: [backend/node_modules]
                   key: backend-build
-            - slack/notify:
-                  channel: "#udacity"
-                  event: fail
-                  custom: |
-                      {
-                        "blocks": [
-                          {
-                            "type": "section",
-                            "text": {
-                          	  "type": "mrkdwn",
-                              "text": "*Job Failed!* :red_circle:\n>*Job:* $CIRCLE_JOB \n>*Link:* $CIRCLE_BUILD_URL \n\n>*Project:* $CIRCLE_PROJECT_REPONAME \n>*Branch:* $CIRCLE_BRANCH \n>*Author:* $CIRCLE_USERNAME"
-                            }
-                          }
-                        ]
-                      }
+            - notifiy_on_failure
 
     test-frontend:
         docker:
@@ -93,7 +86,7 @@ jobs:
                   command: |
                       cd frontend
                       npm run test
-
+            - notifiy_on_failure
     test-backend:
         docker:
             - image: circleci/node:13.8.0
@@ -105,7 +98,7 @@ jobs:
                   command: |
                       cd backend
                       npm run test
-
+            - notifiy_on_failure
     scan-frontend:
         docker:
             - image: circleci/node:13.8.0
@@ -118,7 +111,7 @@ jobs:
                       cd frontend
                       npm i
                       npm audit fix --audit-level=critical --force
-
+            - notifiy_on_failure
     scan-backend:
         docker:
             - image: circleci/node:13.8.0
@@ -131,7 +124,7 @@ jobs:
                       cd backend
                       npm i
                       npm audit fix --audit-level=critical --force
-
+            - notifiy_on_failure
     deploy-infrastructure:
         docker:
             - image: amazon/aws-cli
@@ -174,6 +167,7 @@ jobs:
                   root: .circleci/ansible
                   paths:
                       - inventory.txt
+            - notifiy_on_failure
             - destroy-environment
 
     configure-infrastructure:
@@ -195,6 +189,7 @@ jobs:
                   command: |
                       export ANSIBLE_HOST_KEY_CHECKING=False
                       ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
+            - notifiy_on_failure
             - destroy-environment
 
     run-migrations:
@@ -224,6 +219,7 @@ jobs:
                       else
                         curl --insecure https://kvdb.io/FmqrHhFTmgSRMxCqyRen4/migration -d 'failure'
                       fi
+            - notifiy_on_failure
             - destroy-environment
 
     deploy-frontend:
@@ -256,6 +252,7 @@ jobs:
                   name: Deploy frontend objects
                   command: |
                       aws s3 sync frontend/dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7}
+            - notifiy_on_failure
             - destroy-environment
             - revert-migrations
 
@@ -315,6 +312,7 @@ jobs:
                   command: |
                       echo $(curl --insecure https://kvdb.io/FmqrHhFTmgSRMxCqyRen4/backendid) >> .circleci/ansible/inventory.txt
                       ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
+            - notifiy_on_failure
             - destroy-environment
             - revert-migrations
     smoke-test:
@@ -359,6 +357,7 @@ jobs:
                         echo "Frontend Smoke Test Failed"
                         return 1
                       fi
+            - notifiy_on_failure
             - destroy-environment
             - revert-migrations
 
@@ -375,7 +374,7 @@ jobs:
                       --stack-name InitialStack \
                       --parameter-overrides WorkflowID="udapeople-${CIRCLE_WORKFLOW_ID:0:7}" \
                       --tags project=udapeople
-
+            - notifiy_on_failure
             - destroy-environment
             - revert-migrations
 
@@ -402,9 +401,17 @@ jobs:
                         aws cloudformation delete-stack --stack-name front-prod-${OldWorkflowID}
                         aws cloudformation delete-stack --stack-name back-prod-${OldWorkflowID}
                       fi
+            - notifiy_on_failure
             - destroy-environment
             - revert-migrations
-
+    notifiy_on_success:
+        docker:
+            - image: cimg/base
+        steps:
+            - slack/notify:
+                event: pass
+                channel: cicd-pipeline
+                template: success_tagged_deployemnt_1
 workflows:
     default:
         jobs:
@@ -437,3 +444,5 @@ workflows:
                 requires: [smoke-test]
             - cleanup:
                 requires: [cloudfront-update]
+            - notifiy_on_success:
+                requires: [cleanup]
