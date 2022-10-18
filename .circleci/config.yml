@@ -444,4 +444,4 @@ workflows:
             #     requires: [smoke-test]
             # - cleanup:
             #     requires: [cloudfront-update]
-            - notifiy_on_success:
+            - notifiy_on_success
