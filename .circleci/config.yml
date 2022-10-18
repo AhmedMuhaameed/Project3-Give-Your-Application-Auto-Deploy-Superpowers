@@ -406,7 +406,7 @@ jobs:
             - revert-migrations
     notifiy_on_success:
         docker:
-            - image: cimg/base
+            - image: cimg/base:2022.10
         steps:
             - slack/notify:
                 event: pass
