@@ -329,7 +329,10 @@ jobs:
             - run:
                   name: Backend smoke test.
                   command: |
-                      export BACKEND_IP=$(curl --insecure https://kvdb.io/FmqrHhFTmgSRMxCqyRen4/backendid)
+                      BACKEND_IP=$(aws ec2 describe-instances \
+                        --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                        --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+                        --output text)
                       echo "------------------------------------"
                       echo BACKEND_URL: http://${BACKEND_IP}:3030/api/status
                       echo "------------------------------------"
