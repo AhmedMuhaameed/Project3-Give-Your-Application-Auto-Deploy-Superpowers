@@ -29,8 +29,10 @@ commands:
             - run:
                   name: Install ansible
                   command: |
-                      curl -fsSL https://deb.nodesource.com/setup_13.x | sudo -E bash -
+                      curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
                       sudo apt install -y nodejs
+                      sudo npm install --global n
+                      sudo n 13.8.0
     notifiy_on_failure:
         steps:
             - slack/notify:
@@ -204,6 +206,7 @@ jobs:
         steps:
             - checkout
             - install_ansible
+            - install_awscli
             - add_ssh_keys:
                   fingerprints: ["8a:cf:43:f9:67:10:97:ad:e1:1c:4f:dc:4d:1b:6a:2d"]
             - attach_workspace:
@@ -361,41 +364,52 @@ jobs:
 
     cloudfront-update:
         docker:
-            - image: amazon/aws-cli
+            - image: cimg/base:stable
         steps:
             - checkout
+            - install_awscli
+            - install_nodejs
             - run:
-                  name: Update cloudfront distribution
+                  name: Save old workflow to kvdb
+                  command: |
+                      export OLD_WorkFlow_ID=$(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text)
+                      echo "old workflow id: $OLD_WorkFlow_ID"
+                      curl https://kvdb.io/FmqrHhFTmgSRMxCqyRen4/old_workflow_id -d ${OLD_WorkFlow_ID}
+            - run:
+                  name: Update cloudfront
                   command: |
                       aws cloudformation deploy \
-                      --template-file .circleci/files/cloudfront.yml \
-                      --stack-name InitialStack \
-                      --parameter-overrides WorkflowID="udapeople-${CIRCLE_WORKFLOW_ID:0:7}" \
-                      --tags project=udapeople
+                        --template-file .circleci/files/cloudfront.yml \
+                        --stack-name InitialStack \
+                        --parameter-overrides WorkflowID="udapeople-${CIRCLE_WORKFLOW_ID:0:7}" \
+                        --tags project=udapeople
             - notifiy_on_failure
             - destroy-environment
             - revert-migrations
 
     cleanup:
         docker:
-            - image: amazon/aws-cli
+            - image: cimg/base:stable
         steps:
             - checkout
+            - install_awscli
+            - install_nodejs
             - run:
-                  name: Get old stack workflow id and Remove old stacks and files
+                  name: Remove Old Stack and files
                   command: |
                       # Fetch the Old workflow ID
-                      export OldWorkflowID=$(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text)
+                      export OldWorkflowID=$(curl --insecure https://kvdb.io/FmqrHhFTmgSRMxCqyRen4/old_workflow_id)
                       echo OldWorkflowID: "${OldWorkflowID}"
-                      echo CIRCLE_WORKFLOW_ID "${CIRCLE_WORKFLOW_ID:0:7}"
+
                       # Fetch the stack names
                       export STACKS=$(aws cloudformation list-stacks --query "StackSummaries[*].StackName" --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
                       echo Stack names: "${STACKS[@]}"
+                      
                       # Remove old stacks and files
                       echo THIS IS THE OldWorkflowID: "${OldWorkflowID}"
                       if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
                       then
-                        aws s3 rb s3://udapeople-${OldWorkflowID} --force
+                        aws s3 rb s3://udapeople-${OldWorkflowID} --recursive
                         aws cloudformation delete-stack --stack-name front-prod-${OldWorkflowID}
                         aws cloudformation delete-stack --stack-name back-prod-${OldWorkflowID}
                       fi
