@@ -1,0 +1,11 @@
+GitHub repo:
+https://github.com/AhmedMuhaameed/Project3-Give-Your-Application-Auto-Deploy-Superpowers
+
+s3 buket url:
+http://udapeople-b3a6dbc.s3-website-us-east-1.amazonaws.com/
+
+backend public ipv4:
+https://54.82.237.185/
+
+promethues server:
+http://54.237.203.159:9090/
