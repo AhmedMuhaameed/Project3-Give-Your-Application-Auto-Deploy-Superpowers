@@ -286,7 +286,7 @@ jobs:
 
     deploy-backend:
         docker:
-            - image: cimg/python:3.10.0-node
+            - image: cimg/base:stable
               user: root
         steps:
             - checkout
@@ -308,10 +308,12 @@ jobs:
                   name: Package Backend
                   command: |
                       cd backend
+                      npm i
                       npm run build
-                      tar -czf api.tar.gz dist/* package*
+                      npm run prestart:prod
+                      tar -czf artifact.tar.gz dist/* package*
                       cd ..
-                      cp backend/api.tar.gz .circleci/ansible/roles/deploy/files
+                      cp backend/artifact.tar.gz .circleci/ansible/roles/deploy/files
             - run:
                   name: build backend dist
                   command: |
