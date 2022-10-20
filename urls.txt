@@ -1,11 +1,15 @@
-GitHub repo:
+1- URL01  GitHub repo:
 https://github.com/AhmedMuhaameed/Project3-Give-Your-Application-Auto-Deploy-Superpowers
 
-s3 buket url:
-http://udapeople-b3a6dbc.s3-website-us-east-1.amazonaws.com/
+2- URL02 s3 buket url:
+http://udapeople-480abd4.s3-website-us-east-1.amazonaws.com/
 
-backend public ipv4:
-https://54.82.237.185/
+3- URL03 CloudFront URl
+http://dqrs1si820tdr.cloudfront.net
 
-promethues server:
-http://54.237.203.159:9090/
+4- URL04 backend public ipv4:
+http://ec2-3-84-186-156.compute-1.amazonaws.com:3030/api/status
+
+
+5- URL05 promethues server:
+http://ec2-54-237-203-159.compute-1.amazonaws.com:9090/
